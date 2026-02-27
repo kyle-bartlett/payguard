@@ -1,0 +1,280 @@
+{
+  "federal": {
+    "minimumWage": 7.25,
+    "overtimeThreshold": 40,
+    "overtimeMultiplier": 1.5,
+    "tipCredit": {
+      "allowed": true,
+      "minimumCashWage": 2.13,
+      "maxTipCredit": 5.12
+    },
+    "lawReference": "Fair Labor Standards Act (FLSA)",
+    "notes": "Federal baseline — states may have stricter rules"
+  },
+  "states": {
+    "TX": {
+      "name": "Texas",
+      "minimumWage": 7.25,
+      "followsFederal": true,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": true,
+        "minimumCashWage": 2.13,
+        "maxTipCredit": 5.12
+      },
+      "mealBreak": {
+        "required": false,
+        "paidIfProvided": false,
+        "notes": "No state meal break requirement for adults"
+      },
+      "restBreak": {
+        "required": false,
+        "notes": "No state rest break requirement"
+      },
+      "additionalRules": [],
+      "lawReference": "Texas Payday Law (TWC Chapter 61)"
+    },
+    "CA": {
+      "name": "California",
+      "minimumWage": 16.00,
+      "followsFederal": false,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "dailyOvertimeThreshold": 8,
+      "doubleTimeThreshold": 12,
+      "doubleTimeMultiplier": 2.0,
+      "tipCredit": {
+        "allowed": false,
+        "minimumCashWage": 16.00,
+        "maxTipCredit": 0,
+        "notes": "California does NOT allow tip credits — full minimum wage must be paid"
+      },
+      "mealBreak": {
+        "required": true,
+        "afterHours": 5,
+        "durationMinutes": 30,
+        "paid": false,
+        "penaltyPerViolation": "1 hour of pay",
+        "notes": "30-min unpaid meal break for shifts over 5 hours. Second meal break for shifts over 10 hours."
+      },
+      "restBreak": {
+        "required": true,
+        "every": 4,
+        "durationMinutes": 10,
+        "paid": true,
+        "penaltyPerViolation": "1 hour of pay",
+        "notes": "10-minute paid rest break for every 4 hours worked"
+      },
+      "additionalRules": [
+        "Daily overtime after 8 hours",
+        "Double time after 12 hours in a day",
+        "7th consecutive day worked = 1.5x for first 8 hours, 2x after"
+      ],
+      "lawReference": "California Labor Code Sections 510, 226.7, 512"
+    },
+    "NY": {
+      "name": "New York",
+      "minimumWage": 16.00,
+      "minimumWageNYC": 16.00,
+      "followsFederal": false,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": true,
+        "minimumCashWage": 10.65,
+        "maxTipCredit": 5.35,
+        "notes": "Tip credit rules vary by industry (hospitality vs. service)"
+      },
+      "mealBreak": {
+        "required": true,
+        "rules": "30-min break for shifts over 6 hours spanning 11am-2pm. 45 min for factory workers.",
+        "paid": false,
+        "notes": "Additional meal period for shifts starting before 11am and extending past 7pm"
+      },
+      "restBreak": {
+        "required": false,
+        "notes": "No separate rest break requirement (covered by meal break provisions)"
+      },
+      "additionalRules": [
+        "Spread of hours: extra hour at minimum wage if shift exceeds 10 hours",
+        "Call-in pay: minimum of 4 hours pay for reporting to work"
+      ],
+      "lawReference": "NY Labor Law Article 6, Section 162"
+    },
+    "FL": {
+      "name": "Florida",
+      "minimumWage": 13.00,
+      "followsFederal": false,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": true,
+        "minimumCashWage": 9.98,
+        "maxTipCredit": 3.02
+      },
+      "mealBreak": {
+        "required": false,
+        "notes": "No state meal break requirement for adults (minors must get 30-min break per 4 hours)"
+      },
+      "restBreak": {
+        "required": false,
+        "notes": "No state rest break requirement"
+      },
+      "additionalRules": [],
+      "lawReference": "Florida Constitution Article X, Section 24"
+    },
+    "IL": {
+      "name": "Illinois",
+      "minimumWage": 14.00,
+      "followsFederal": false,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": true,
+        "minimumCashWage": 8.40,
+        "maxTipCredit": 5.60,
+        "notes": "Tip credit cannot exceed 40% of applicable minimum wage"
+      },
+      "mealBreak": {
+        "required": true,
+        "afterHours": 7.5,
+        "durationMinutes": 20,
+        "paid": false,
+        "notes": "20-minute meal break no later than 5 hours after start of shift for shifts over 7.5 hours"
+      },
+      "restBreak": {
+        "required": false,
+        "notes": "No separate rest break requirement"
+      },
+      "additionalRules": [
+        "One Day Rest in Seven Act: at least 24 consecutive hours of rest in every calendar week"
+      ],
+      "lawReference": "Illinois Minimum Wage Law (820 ILCS 105)"
+    },
+    "OH": {
+      "name": "Ohio",
+      "minimumWage": 10.45,
+      "followsFederal": false,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": true,
+        "minimumCashWage": 5.25,
+        "maxTipCredit": 5.20
+      },
+      "mealBreak": {
+        "required": false,
+        "notes": "No state meal break requirement for adults"
+      },
+      "restBreak": {
+        "required": false,
+        "notes": "No state rest break requirement"
+      },
+      "additionalRules": [],
+      "lawReference": "Ohio Constitution Article II, Section 34a"
+    },
+    "PA": {
+      "name": "Pennsylvania",
+      "minimumWage": 7.25,
+      "followsFederal": true,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": true,
+        "minimumCashWage": 2.83,
+        "maxTipCredit": 4.42
+      },
+      "mealBreak": {
+        "required": false,
+        "notes": "No meal break required for adults (30-min break required for minors per 5 hours)"
+      },
+      "restBreak": {
+        "required": false,
+        "notes": "No rest break requirement"
+      },
+      "additionalRules": [],
+      "lawReference": "Pennsylvania Minimum Wage Act (43 P.S. §333.101)"
+    },
+    "GA": {
+      "name": "Georgia",
+      "minimumWage": 5.15,
+      "effectiveMinimum": 7.25,
+      "followsFederal": true,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": true,
+        "minimumCashWage": 2.13,
+        "maxTipCredit": 5.12,
+        "notes": "Follows federal tip credit rules"
+      },
+      "mealBreak": {
+        "required": false,
+        "notes": "No state meal break requirement"
+      },
+      "restBreak": {
+        "required": false,
+        "notes": "No state rest break requirement"
+      },
+      "additionalRules": [
+        "State minimum is $5.15 but FLSA applies to most employees requiring $7.25"
+      ],
+      "lawReference": "Georgia Minimum Wage Law (O.C.G.A. § 34-4-3)"
+    },
+    "NC": {
+      "name": "North Carolina",
+      "minimumWage": 7.25,
+      "followsFederal": true,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": true,
+        "minimumCashWage": 2.13,
+        "maxTipCredit": 5.12
+      },
+      "mealBreak": {
+        "required": false,
+        "notes": "No state meal break requirement for adults"
+      },
+      "restBreak": {
+        "required": false,
+        "notes": "No state rest break requirement"
+      },
+      "additionalRules": [],
+      "lawReference": "North Carolina Wage and Hour Act (N.C.G.S. §95-25.1)"
+    },
+    "WA": {
+      "name": "Washington",
+      "minimumWage": 16.28,
+      "followsFederal": false,
+      "overtimeThreshold": 40,
+      "overtimeMultiplier": 1.5,
+      "tipCredit": {
+        "allowed": false,
+        "minimumCashWage": 16.28,
+        "maxTipCredit": 0,
+        "notes": "Washington does NOT allow tip credits — full minimum wage must be paid"
+      },
+      "mealBreak": {
+        "required": true,
+        "afterHours": 5,
+        "durationMinutes": 30,
+        "paid": false,
+        "notes": "30-minute meal period for shifts over 5 hours. Must be at least 2 hours into shift and 2 hours before end."
+      },
+      "restBreak": {
+        "required": true,
+        "every": 4,
+        "durationMinutes": 10,
+        "paid": true,
+        "notes": "10-minute paid rest break for every 4 hours worked"
+      },
+      "additionalRules": [
+        "Agricultural workers have separate overtime rules",
+        "Seattle, SeaTac may have higher local minimums"
+      ],
+      "lawReference": "Washington Minimum Wage Act (RCW 49.46)"
+    }
+  }
+}

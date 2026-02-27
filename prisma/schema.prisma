@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("worker") // "worker" | "employer"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payStubs  PayStub[]
+  employer  Employer?
+}
+
+model PayStub {
+  id             String   @id @default(uuid())
+  userId         String
+  imageUrl       String?
+  state          String
+  
+  // OCR extracted fields
+  employerName   String?
+  payPeriodStart String?
+  payPeriodEnd   String?
+  hoursWorked    Float?
+  hourlyRate     Float?
+  overtimeHours  Float?
+  overtimeRate   Float?
+  tips           Float?
+  grossPay       Float?
+  netPay         Float?
+  deductions     String?  // JSON string of deduction items
+  
+  // Raw OCR text
+  ocrRawText     String?
+  
+  // Analysis results
+  analysisStatus String   @default("pending") // "pending" | "processing" | "complete" | "error"
+  analysisResult String?  // JSON string of analysis
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  user           User     @relation(fields: [userId], references: [id])
+  violations     Violation[]
+}
+
+model Violation {
+  id            String   @id @default(uuid())
+  payStubId     String
+  type          String   // "minimum_wage" | "overtime" | "tip_credit" | "meal_break" | "rest_break"
+  severity      String   @default("warning") // "warning" | "violation" | "critical"
+  description   String
+  estimatedLoss Float?
+  lawReference  String?
+  
+  createdAt     DateTime @default(now())
+  
+  payStub       PayStub  @relation(fields: [payStubId], references: [id])
+}
+
+model Employer {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  companyName     String
+  plan            String   @default("free") // "free" | "starter" | "professional" | "enterprise"
+  complianceScore Float?
+  employeesChecked Int     @default(0)
+  issuesFound     Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id])
+}
