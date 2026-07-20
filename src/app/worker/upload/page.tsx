@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import {
@@ -14,7 +15,10 @@ import {
   X,
   Shield,
   Eye,
+  PlayCircle,
 } from 'lucide-react';
+import { readApiResponse } from '@/lib/api-response';
+import { DEMO_ANALYSIS } from '@/lib/demo-data';
 
 const STATES = [
   { code: 'CA', name: 'California' },
@@ -38,6 +42,7 @@ export default function UploadPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [state, setState] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -91,12 +96,7 @@ export default function UploadPage() {
         body: formData,
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Analysis failed');
-      }
-
-      const data = await res.json();
+      const data = await readApiResponse<Record<string, unknown>>(res);
       // Store results and navigate
       sessionStorage.setItem('payguard_results', JSON.stringify(data));
       router.push('/worker/results');
@@ -105,6 +105,13 @@ export default function UploadPage() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleDemo = () => {
+    setIsDemoLoading(true);
+    setError(null);
+    sessionStorage.setItem('payguard_results', JSON.stringify(DEMO_ANALYSIS));
+    router.push('/worker/results');
   };
 
   return (
@@ -184,9 +191,12 @@ export default function UploadPage() {
                 <div className="relative">
                   {preview ? (
                     <div className="relative rounded-xl overflow-hidden bg-slate-100">
-                      <img
+                      <Image
                         src={preview}
                         alt="Pay stub preview"
+                        width={1200}
+                        height={800}
+                        unoptimized
                         className="w-full max-h-64 object-contain"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -251,23 +261,37 @@ export default function UploadPage() {
 
             {/* Action */}
             <div className="p-6 sm:p-8">
-              <button
-                onClick={handleAnalyze}
-                disabled={isAnalyzing || !file || !state}
-                className="w-full py-4 bg-blue-600 text-white font-bold text-lg rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl disabled:shadow-none flex items-center justify-center gap-3"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Analyzing Your Pay Stub...
-                  </>
-                ) : (
-                  <>
-                    <Shield className="w-5 h-5" />
-                    Analyze My Pay
-                  </>
-                )}
-              </button>
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing || isDemoLoading || !file || !state}
+                  className="w-full py-4 bg-blue-600 text-white font-bold text-lg rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl disabled:shadow-none flex items-center justify-center gap-3"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Analyzing Your Pay Stub...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-5 h-5" />
+                      Analyze My Pay
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDemo}
+                  disabled={isAnalyzing || isDemoLoading}
+                  className="w-full py-4 bg-white text-blue-700 font-bold text-lg rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                >
+                  {isDemoLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlayCircle className="w-5 h-5" />}
+                  Demo
+                </button>
+              </div>
+              <p className="mt-3 text-center text-xs text-slate-400">
+                No pay statement handy? Demo uses a sample with realistic overtime issues.
+              </p>
             </div>
           </div>
 

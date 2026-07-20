@@ -9,8 +9,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  DollarSign,
-  Clock,
   Scale,
   FileText,
   ArrowLeft,
@@ -37,15 +35,9 @@ interface AnalysisData {
   state: string;
   stateName: string;
   extractedData?: Record<string, unknown>;
+  extractionConfidence?: string;
+  source?: 'live' | 'demo';
 }
-
-const violationIcons: Record<string, React.ReactNode> = {
-  minimum_wage: <DollarSign className="w-5 h-5" />,
-  overtime: <Clock className="w-5 h-5" />,
-  tip_credit: <DollarSign className="w-5 h-5" />,
-  meal_break: <Scale className="w-5 h-5" />,
-  rest_break: <Scale className="w-5 h-5" />,
-};
 
 const violationLabels: Record<string, string> = {
   minimum_wage: 'Minimum Wage',
@@ -83,15 +75,19 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const stored = sessionStorage.getItem('payguard_results');
+    let parsed: AnalysisData | null = null;
     if (stored) {
       try {
-        setResults(JSON.parse(stored));
+        parsed = JSON.parse(stored) as AnalysisData;
       } catch {
-        router.push('/worker/upload');
+        parsed = null;
       }
-    } else {
-      router.push('/worker/upload');
     }
+    const timer = window.setTimeout(() => {
+      if (parsed) setResults(parsed);
+      else router.replace('/worker/upload');
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [router]);
 
   if (!results) {
@@ -142,7 +138,7 @@ export default function ResultsPage() {
                 </p>
                 <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-white text-sm">
                   <Scale className="w-3.5 h-3.5" />
-                  {results.stateName} labor law
+                  {results.source === 'demo' ? 'Demo data • ' : ''}{results.stateName} labor law
                 </div>
               </div>
             </div>
@@ -304,8 +300,8 @@ export default function ResultsPage() {
                 <p className="text-sm font-semibold text-amber-800">Important Disclaimer</p>
                 <p className="text-xs text-amber-700 mt-1 leading-relaxed">
                   PayGuard provides informational analysis only. This is not legal advice. Labor law
-                  violations should be reviewed by a qualified attorney. Results are based on OCR
-                  extraction and may not be 100% accurate. Always verify with your actual pay records.
+                  violations should be reviewed by a qualified attorney. AI-extracted values may not
+                  be 100% accurate. Always verify the results against your actual pay records.
                 </p>
               </div>
             </div>
