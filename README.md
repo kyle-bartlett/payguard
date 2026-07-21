@@ -4,7 +4,7 @@ PayGuard extracts pay-statement fields with the OpenAI Responses API, then appli
 
 ## Local Development
 
-Copy `.env.example` to `.env.local`, add `OPENAI_API_KEY`, then run:
+Copy `.env.example` to `.env`, add `OPENAI_API_KEY`, and generate an auth secret with `openssl rand -hex 32`, then run:
 
 ```bash
 npm install
@@ -26,5 +26,6 @@ npm run build
 PayGuard deploys from Forgejo `main` through Coolify at [payguard.bartlettlabs.io](https://payguard.bartlettlabs.io). Configure these environment variables in Coolify:
 
 - `DATABASE_URL`
+- `AUTH_SECRET` (at least 32 characters)
 - `OPENAI_API_KEY`
 - `OPENAI_PAYGUARD_MODEL` (optional; defaults to `gpt-5.6-luna`)

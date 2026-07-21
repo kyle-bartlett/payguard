@@ -79,7 +79,7 @@ test('rejects an extracted pay-period amount masquerading as an hourly rate', as
   assert.equal(result.extractionWarnings.length, 1);
 });
 
-test('turns non-JSON provider failures into a controlled upstream error', async () => {
+test('turns provider failures into controlled errors without exposing secrets', async () => {
   const fakeFetch = async () => new Response('<!DOCTYPE html><h1>Bad Gateway</h1>', { status: 502 });
   await assert.rejects(
     extractPayStatement(new File(['pdf'], 'statement.pdf', { type: 'application/pdf' }), 'test-key', fakeFetch as typeof fetch),
@@ -87,15 +87,12 @@ test('turns non-JSON provider failures into a controlled upstream error', async 
       && error.status === 502
       && !error.message.includes('<!DOCTYPE'),
   );
-});
-
-test('does not expose provider authentication details', async () => {
-  const fakeFetch = async () => new Response(
+  const fakeAuthFetch = async () => new Response(
     JSON.stringify({ error: { message: 'Incorrect API key provided: secret-value' } }),
     { status: 401, headers: { 'content-type': 'application/json' } },
   );
   await assert.rejects(
-    extractPayStatement(new File(['pdf'], 'statement.pdf', { type: 'application/pdf' }), 'test-key', fakeFetch as typeof fetch),
+    extractPayStatement(new File(['pdf'], 'statement.pdf', { type: 'application/pdf' }), 'test-key', fakeAuthFetch as typeof fetch),
     (error: unknown) => error instanceof AnalysisRequestError
       && error.status === 503
       && error.message.includes('authentication')

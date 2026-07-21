@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import {
@@ -15,10 +16,21 @@ import {
   Clock,
   TrendingUp,
   Plug,
+  LogOut,
+  Loader2,
 } from 'lucide-react';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'upload' | 'integrations'>('overview');
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleLogout = async () => {
+    setSigningOut(true);
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.replace('/employer/login');
+    router.refresh();
+  };
 
   return (
     <>
@@ -37,6 +49,15 @@ export default function DashboardPage() {
                   <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                   Demo Mode
                 </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={signingOut}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 text-sm font-medium rounded-full hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {signingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+                  Sign Out
+                </button>
               </div>
             </div>
 

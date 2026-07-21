@@ -1,55 +1,41 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Shield, Mail, Lock, Building2, User, ArrowRight, Loader2, Check } from 'lucide-react';
+import { Shield, Mail, Lock, Building2, User, ArrowRight, Loader2 } from 'lucide-react';
+import { readApiResponse } from '@/lib/api-response';
 
 export default function SignupPage() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    // Placeholder — real auth coming soon
-    setTimeout(() => {
+    setError('');
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, company, email, password }),
+      });
+      await readApiResponse<{ ok: true }>(response);
+      router.replace('/employer/dashboard');
+      router.refresh();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'We could not create your account.');
+    } finally {
       setLoading(false);
-      setSuccess(true);
-    }, 1500);
+    }
   };
-
-  if (success) {
-    return (
-      <>
-        <Navbar />
-        <main className="min-h-screen bg-slate-50 pt-24 pb-16 flex items-center">
-          <div className="max-w-md mx-auto w-full px-4 sm:px-6 text-center">
-            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-emerald-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">You&apos;re on the list!</h1>
-            <p className="text-slate-500 mb-6">
-              We&apos;ll notify you when the employer dashboard launches. You&apos;ll get 14 days free when it&apos;s ready.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
-            >
-              Back to Home
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
 
   return (
     <>
@@ -74,6 +60,7 @@ export default function SignupPage() {
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="text"
+                    autoComplete="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jane Smith"
@@ -89,6 +76,7 @@ export default function SignupPage() {
                   <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="text"
+                    autoComplete="organization"
                     value={company}
                     onChange={(e) => setCompany(e.target.value)}
                     placeholder="Acme Corp"
@@ -104,6 +92,7 @@ export default function SignupPage() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
@@ -119,6 +108,7 @@ export default function SignupPage() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="password"
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Minimum 8 characters"
@@ -128,6 +118,12 @@ export default function SignupPage() {
                   />
                 </div>
               </div>
+
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  {error}
+                </div>
+              )}
 
               <button
                 type="submit"

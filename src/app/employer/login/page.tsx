@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Shield, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { readApiResponse } from '@/lib/api-response';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,11 +20,20 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     
-    // Placeholder — real auth coming soon
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      await readApiResponse<{ ok: true }>(response);
+      router.replace('/employer/dashboard');
+      router.refresh();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'We could not sign you in.');
+    } finally {
       setLoading(false);
-      setError('Authentication coming soon. Sign up to get notified!');
-    }, 1500);
+    }
   };
 
   return (
@@ -49,6 +61,7 @@ export default function LoginPage() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
@@ -61,14 +74,13 @@ export default function LoginPage() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-sm font-semibold text-slate-700">Password</label>
-                  <button type="button" className="text-xs text-blue-600 hover:text-blue-700">
-                    Forgot password?
-                  </button>
+                  <span className="text-xs text-slate-400">Password reset coming soon</span>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
                     type="password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
