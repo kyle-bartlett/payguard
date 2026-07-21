@@ -8,7 +8,7 @@ export const DEMO_PAY_STUB: PayStubData = {
   hourlyRate: 18,
   overtimeHours: 3,
   overtimeRate: 18,
-  grossPay: 774,
+  grossPay: 855,
   netPay: 641.73,
   deductions: [
     { name: 'Federal Tax', amount: 72.4 },

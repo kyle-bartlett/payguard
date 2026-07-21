@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'State is required' }, { status: 400 });
     }
 
-    const { extractedData, confidence } = await extractPayStatement(file, apiKey);
+    const { extractedData, confidence, extractionWarnings } = await extractPayStatement(file, apiKey);
     const hasKeyData = extractedData.hourlyRate || extractedData.grossPay || extractedData.hoursWorked;
     if (!hasKeyData) {
       return NextResponse.json(
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const analysisResult = analyzePayStub(extractedData, state);
+    const analysisResult = analyzePayStub(extractedData, state, extractionWarnings);
 
     return NextResponse.json({
       ...analysisResult,

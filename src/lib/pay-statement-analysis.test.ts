@@ -57,6 +57,28 @@ test('normalizes structured statement output and sends images as image input', a
   assert.match(requestBody, /"store":false/);
 });
 
+test('rejects an extracted pay-period amount masquerading as an hourly rate', async () => {
+  const modelResult = {
+    documentType: 'pay_statement', confidence: 'high', employerName: 'Power Mobile Life LLC',
+    payPeriodStart: '07/01/2026', payPeriodEnd: '07/15/2026', hoursWorked: 86.67,
+    hourlyRate: 4791.67, overtimeHours: null, overtimeRate: null, tips: null,
+    grossPay: 4791.67, netPay: 3178.22, deductions: [],
+  };
+  const fakeFetch = async () => new Response(JSON.stringify({
+    output: [{ content: [{ type: 'output_text', text: JSON.stringify(modelResult) }] }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } });
+
+  const result = await extractPayStatement(
+    new File(['pdf'], 'statement.pdf', { type: 'application/pdf' }),
+    'test-key',
+    fakeFetch as typeof fetch,
+  );
+
+  assert.equal(result.extractedData.hourlyRate, undefined);
+  assert.equal(result.extractedData.grossPay, 4791.67);
+  assert.equal(result.extractionWarnings.length, 1);
+});
+
 test('turns non-JSON provider failures into a controlled upstream error', async () => {
   const fakeFetch = async () => new Response('<!DOCTYPE html><h1>Bad Gateway</h1>', { status: 502 });
   await assert.rejects(

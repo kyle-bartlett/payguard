@@ -15,7 +15,7 @@ export interface PayStubData {
 }
 
 export interface ViolationResult {
-  type: 'minimum_wage' | 'overtime' | 'tip_credit' | 'meal_break' | 'rest_break';
+  type: 'minimum_wage' | 'overtime' | 'tip_credit' | 'meal_break' | 'rest_break' | 'pay_discrepancy' | 'data_quality';
   severity: 'warning' | 'violation' | 'critical';
   description: string;
   estimatedLoss: number;
@@ -23,7 +23,7 @@ export interface ViolationResult {
 }
 
 export interface AnalysisResult {
-  status: 'clean' | 'issues_found';
+  status: 'clean' | 'issues_found' | 'needs_review';
   violations: ViolationResult[];
   totalEstimatedLoss: number;
   summary: string;
@@ -33,7 +33,37 @@ export interface AnalysisResult {
 
 type StateLaws = typeof laborLawsData.states.TX;
 
-export function analyzePayStub(data: PayStubData, stateCode: string): AnalysisResult {
+function parseCalendarDate(value?: string): number | undefined {
+  if (!value) return undefined;
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(value.trim());
+  const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value.trim());
+  const parts = iso
+    ? { year: Number(iso[1]), month: Number(iso[2]), day: Number(iso[3]) }
+    : us
+      ? { year: Number(us[3]), month: Number(us[1]), day: Number(us[2]) }
+      : undefined;
+  if (!parts) return undefined;
+
+  const timestamp = Date.UTC(parts.year, parts.month - 1, parts.day);
+  const date = new Date(timestamp);
+  if (date.getUTCFullYear() !== parts.year
+    || date.getUTCMonth() !== parts.month - 1
+    || date.getUTCDate() !== parts.day) return undefined;
+  return timestamp;
+}
+
+function getPayPeriodDays(data: PayStubData): number | undefined {
+  const start = parseCalendarDate(data.payPeriodStart);
+  const end = parseCalendarDate(data.payPeriodEnd);
+  if (start === undefined || end === undefined || end < start) return undefined;
+  return Math.floor((end - start) / 86_400_000) + 1;
+}
+
+export function analyzePayStub(
+  data: PayStubData,
+  stateCode: string,
+  extractionWarnings: string[] = [],
+): AnalysisResult {
   const violations: ViolationResult[] = [];
   const federal = laborLawsData.federal;
   const stateData = laborLawsData.states[stateCode as keyof typeof laborLawsData.states] as StateLaws | undefined;
@@ -59,6 +89,31 @@ export function analyzePayStub(data: PayStubData, stateCode: string): AnalysisRe
     ('effectiveMinimum' in stateData ? (stateData as { effectiveMinimum: number }).effectiveMinimum : stateData.minimumWage),
     federal.minimumWage
   );
+  const payPeriodDays = getPayPeriodDays(data);
+  const isSingleWorkweek = payPeriodDays !== undefined && payPeriodDays <= 7;
+
+  for (const warning of extractionWarnings) {
+    violations.push({
+      type: 'data_quality',
+      severity: 'warning',
+      description: warning,
+      estimatedLoss: 0,
+      lawReference: '',
+    });
+  }
+
+  if (payPeriodDays !== undefined
+    && payPeriodDays > 7
+    && data.hoursWorked !== undefined
+    && data.hoursWorked > 0) {
+    violations.push({
+      type: 'data_quality',
+      severity: 'warning',
+      description: `This statement spans ${payPeriodDays} calendar days and reports only ${data.hoursWorked} total hours. Overtime is measured by workweek, so total overtime cannot be calculated reliably without a weekly hours breakdown.`,
+      estimatedLoss: 0,
+      lawReference: federal.lawReference,
+    });
+  }
 
   // 1. Minimum Wage Check
   if (data.hourlyRate !== undefined && data.hourlyRate > 0) {
@@ -122,7 +177,7 @@ export function analyzePayStub(data: PayStubData, stateCode: string): AnalysisRe
   }
 
   // 2. Overtime Check
-  if (data.hoursWorked !== undefined && data.hoursWorked > 0 && data.hourlyRate !== undefined) {
+  if (isSingleWorkweek && data.hoursWorked !== undefined && data.hoursWorked > 0 && data.hourlyRate !== undefined) {
     const otThreshold = stateData.overtimeThreshold || federal.overtimeThreshold;
     const otMultiplier = stateData.overtimeMultiplier || federal.overtimeMultiplier;
     
@@ -170,8 +225,8 @@ export function analyzePayStub(data: PayStubData, stateCode: string): AnalysisRe
     }
   }
 
-  // 3. Meal Break Check
-  if (stateData.mealBreak.required && data.hoursWorked) {
+  // Aggregate pay-period hours cannot establish shift-level meal or rest break violations.
+  if (payPeriodDays === 1 && stateData.mealBreak.required && data.hoursWorked) {
     const afterHours = 'afterHours' in stateData.mealBreak ? (stateData.mealBreak as { afterHours: number }).afterHours : 6;
     if (data.hoursWorked > afterHours) {
       // Check deductions for meal break
@@ -184,7 +239,7 @@ export function analyzePayStub(data: PayStubData, stateCode: string): AnalysisRe
           type: 'meal_break',
           severity: 'warning',
           description: `${stateData.name} requires a meal break for shifts over ${afterHours} hours. Your shift was ${data.hoursWorked} hours. We couldn't find a meal break deduction — if you weren't provided a meal break, you may be owed a penalty (typically 1 hour of additional pay).`,
-          estimatedLoss: data.hourlyRate || effectiveMinWage,
+          estimatedLoss: 0,
           lawReference: stateData.lawReference,
         });
       }
@@ -192,7 +247,7 @@ export function analyzePayStub(data: PayStubData, stateCode: string): AnalysisRe
   }
 
   // 4. Rest Break Check
-  if (stateData.restBreak.required && data.hoursWorked) {
+  if (payPeriodDays === 1 && stateData.restBreak.required && data.hoursWorked) {
     const every = 'every' in stateData.restBreak ? (stateData.restBreak as { every: number }).every : 4;
     const requiredBreaks = Math.floor(data.hoursWorked / every);
     if (requiredBreaks > 0) {
@@ -200,7 +255,7 @@ export function analyzePayStub(data: PayStubData, stateCode: string): AnalysisRe
         type: 'rest_break',
         severity: 'warning',
         description: `${stateData.name} requires a paid rest break every ${every} hours. For your ${data.hoursWorked}-hour shift, you should have received ${requiredBreaks} rest break(s). If you weren't provided rest breaks, you may be owed additional pay.`,
-        estimatedLoss: (data.hourlyRate || effectiveMinWage) * requiredBreaks,
+        estimatedLoss: 0,
         lawReference: stateData.lawReference,
       });
     }
@@ -208,36 +263,43 @@ export function analyzePayStub(data: PayStubData, stateCode: string): AnalysisRe
 
   // 5. Gross pay verification
   if (data.grossPay && data.hourlyRate && data.hoursWorked) {
-    const regularHours = Math.min(data.hoursWorked, stateData.overtimeThreshold || 40);
-    const otHours = data.overtimeHours || Math.max(0, data.hoursWorked - (stateData.overtimeThreshold || 40));
+    const threshold = stateData.overtimeThreshold || 40;
+    const canReconcileGross = data.overtimeHours !== undefined || isSingleWorkweek;
+    const otHours = data.overtimeHours ?? Math.max(0, data.hoursWorked - threshold);
+    const regularHours = Math.max(0, data.hoursWorked - otHours);
     const otRate = data.overtimeRate || (data.hourlyRate * (stateData.overtimeMultiplier || 1.5));
     const expectedGross = (regularHours * data.hourlyRate) + (otHours * otRate) + (data.tips || 0);
     
     const diff = expectedGross - data.grossPay;
-    if (diff > 1) { // More than $1 discrepancy
+    if (canReconcileGross && diff > Math.max(1, expectedGross * 0.01)) {
       violations.push({
-        type: 'minimum_wage',
+        type: 'pay_discrepancy',
         severity: 'warning',
         description: `Your gross pay of $${data.grossPay.toFixed(2)} appears to be $${diff.toFixed(2)} less than expected based on your hours and rate ($${expectedGross.toFixed(2)} expected). This could indicate missing hours, incorrect pay rate, or unauthorized deductions.`,
-        estimatedLoss: diff,
+        estimatedLoss: 0,
         lawReference: stateData.lawReference,
       });
     }
   }
 
-  const totalLoss = violations.reduce((sum, v) => sum + v.estimatedLoss, 0);
+  const issueCount = violations.filter(v => v.severity !== 'warning').length;
+  const warningCount = violations.length - issueCount;
+  const totalLoss = violations
+    .filter(v => v.severity !== 'warning')
+    .reduce((sum, v) => sum + v.estimatedLoss, 0);
 
   let summary: string;
   if (violations.length === 0) {
     summary = `Based on our analysis of your pay stub against ${stateData.name} labor laws, your pay appears to be correct. No violations detected.`;
+  } else if (issueCount === 0) {
+    summary = `We could not calculate a reliable underpayment estimate. Review ${warningCount === 1 ? 'the highlighted data note' : `the ${warningCount} highlighted data notes`} before relying on this analysis.`;
   } else {
     const critical = violations.filter(v => v.severity === 'critical').length;
-    const warning = violations.filter(v => v.severity !== 'critical').length;
-    summary = `We found ${violations.length} potential issue${violations.length > 1 ? 's' : ''} with your pay${critical > 0 ? ` (${critical} critical)` : ''}${warning > 0 ? ` and ${warning} warning${warning > 1 ? 's' : ''}` : ''}. Estimated underpayment: $${totalLoss.toFixed(2)}.`;
+    summary = `We found ${issueCount} potential issue${issueCount > 1 ? 's' : ''} with your pay${critical > 0 ? ` (${critical} critical)` : ''}${warningCount > 0 ? ` and ${warningCount} review note${warningCount > 1 ? 's' : ''}` : ''}. Estimated underpayment: $${totalLoss.toFixed(2)}.`;
   }
 
   return {
-    status: violations.length === 0 ? 'clean' : 'issues_found',
+    status: violations.length === 0 ? 'clean' : issueCount > 0 ? 'issues_found' : 'needs_review',
     violations,
     totalEstimatedLoss: totalLoss,
     summary,

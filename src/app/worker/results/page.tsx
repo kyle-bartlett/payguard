@@ -45,6 +45,8 @@ const violationLabels: Record<string, string> = {
   tip_credit: 'Tip Credit',
   meal_break: 'Meal Break',
   rest_break: 'Rest Break',
+  pay_discrepancy: 'Pay Total Review',
+  data_quality: 'Data Review',
 };
 
 const severityColors: Record<string, { bg: string; text: string; border: string; icon: React.ReactNode }> = {
@@ -102,6 +104,7 @@ export default function ResultsPage() {
   }
 
   const isClean = results.status === 'clean';
+  const needsReview = results.status === 'needs_review';
 
   return (
     <>
@@ -120,10 +123,17 @@ export default function ResultsPage() {
           {/* Status Banner */}
           <div className={`rounded-2xl p-6 sm:p-8 mb-6 ${isClean
             ? 'bg-gradient-to-br from-emerald-500 to-emerald-600'
-            : 'bg-gradient-to-br from-red-500 to-red-600'
+            : needsReview
+              ? 'bg-gradient-to-br from-amber-500 to-amber-600'
+              : 'bg-gradient-to-br from-red-500 to-red-600'
           }`}>
             <div className="flex items-start gap-4">
-              <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${isClean ? 'bg-emerald-400/30' : 'bg-red-400/30'}`}>
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 ${isClean
+                ? 'bg-emerald-400/30'
+                : needsReview
+                  ? 'bg-amber-400/30'
+                  : 'bg-red-400/30'
+              }`}>
                 {isClean
                   ? <CheckCircle2 className="w-8 h-8 text-white" />
                   : <AlertTriangle className="w-8 h-8 text-white" />
@@ -131,7 +141,7 @@ export default function ResultsPage() {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-white">
-                  {isClean ? 'Your Pay Looks Correct' : 'Potential Issues Found'}
+                  {isClean ? 'Your Pay Looks Correct' : needsReview ? 'Review Needed' : 'Potential Issues Found'}
                 </h1>
                 <p className="mt-2 text-white/80 leading-relaxed">
                   {results.summary}
@@ -161,7 +171,7 @@ export default function ResultsPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
               <div className="px-6 py-4 border-b border-slate-100">
                 <h2 className="text-lg font-bold text-slate-900">
-                  Issues Found ({results.violations.length})
+                  {needsReview ? 'Review Notes' : 'Issues Found'} ({results.violations.length})
                 </h2>
               </div>
               <div className="divide-y divide-slate-100">

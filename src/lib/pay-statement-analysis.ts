@@ -145,8 +145,12 @@ async function readOpenAIResponse(response: Response): Promise<OpenAIResponse> {
   return typedPayload;
 }
 
-function normalizeStatement(statement: ExtractedStatement): PayStubData {
+function normalizeStatement(statement: ExtractedStatement): {
+  data: PayStubData;
+  warnings: string[];
+} {
   const data: PayStubData = {};
+  const warnings: string[] = [];
   const scalarFields = [
     'employerName', 'payPeriodStart', 'payPeriodEnd', 'hoursWorked', 'hourlyRate',
     'overtimeHours', 'overtimeRate', 'tips', 'grossPay', 'netPay',
@@ -157,14 +161,32 @@ function normalizeStatement(statement: ExtractedStatement): PayStubData {
     if (value !== null) Object.assign(data, { [field]: value });
   }
   if (statement.deductions.length > 0) data.deductions = statement.deductions;
-  return data;
+
+  if (data.hourlyRate && data.hoursWorked && data.grossPay) {
+    const sameAsGrossPay = Math.abs(data.hourlyRate - data.grossPay) <= Math.max(0.01, data.grossPay * 0.005);
+    const impliedStraightTimePay = data.hourlyRate * data.hoursWorked;
+    const implausibleAgainstGross = impliedStraightTimePay > data.grossPay * 3;
+
+    if (sameAsGrossPay || implausibleAgainstGross) {
+      delete data.hourlyRate;
+      warnings.push(
+        'The extracted hourly rate conflicted with the statement totals, so it was excluded from the wage calculation.',
+      );
+    }
+  }
+
+  return { data, warnings };
 }
 
 export async function extractPayStatement(
   file: File,
   apiKey: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ extractedData: PayStubData; confidence: ExtractedStatement['confidence'] }> {
+): Promise<{
+  extractedData: PayStubData;
+  confidence: ExtractedStatement['confidence'];
+  extractionWarnings: string[];
+}> {
   validatePayStatement(file);
   const fileContent = await toOpenAIContent(file);
   const response = await fetchImpl('https://api.openai.com/v1/responses', {
@@ -181,6 +203,8 @@ export async function extractPayStatement(
         'Copy only values visibly supported by the document. Never estimate or infer missing money, hours, dates, or rates.',
         'Use null for missing scalar values and an empty array when there are no visible deductions.',
         'hoursWorked means total hours in the pay period. overtimeHours means the subset explicitly labeled overtime.',
+        'hourlyRate must come from a value explicitly labeled as an hourly, regular, or base rate. Never copy salary, current earnings, gross pay, or net pay into hourlyRate.',
+        'If the employee is salaried and no explicit hourly rate is printed, return null for hourlyRate.',
         'Return not_pay_statement or unreadable when appropriate instead of inventing fields.',
       ].join(' '),
       input: [{
@@ -205,5 +229,10 @@ export async function extractPayStatement(
     throw new AnalysisRequestError('We could not read this statement. Try a clearer image or the original PDF.', 422);
   }
 
-  return { extractedData: normalizeStatement(statement), confidence: statement.confidence };
+  const normalized = normalizeStatement(statement);
+  return {
+    extractedData: normalized.data,
+    confidence: statement.confidence,
+    extractionWarnings: normalized.warnings,
+  };
 }
