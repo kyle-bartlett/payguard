@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 const scryptAsync = promisify(scrypt);
 
 export const AUTH_COOKIE_NAME = 'payguard_session';
-export const AUTH_SESSION_MAX_AGE = 7 * 24 * 60 * 60;
+const AUTH_SESSION_MAX_AGE = 7 * 24 * 60 * 60;
 
 export interface AuthSession {
   userId: string;
@@ -103,8 +103,13 @@ export function isAuthRateLimited(key: string, limit: number, windowMs: number):
   return false;
 }
 
+// The site sits behind Cloudflare, which overwrites CF-Connecting-IP with the real
+// client address. Never trust the leading X-Forwarded-For hop: clients can set it.
+// Without Cloudflare (local runs), fall back to the rightmost hop, which is the one
+// our own proxy appended.
 export function getClientIp(request: Request): string {
-  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || request.headers.get('x-real-ip')
-    || 'unknown';
+  const cloudflare = request.headers.get('cf-connecting-ip')?.trim();
+  if (cloudflare) return cloudflare;
+  const hops = request.headers.get('x-forwarded-for')?.split(',').map((hop) => hop.trim()).filter(Boolean);
+  return hops?.at(-1) || request.headers.get('x-real-ip') || 'unknown';
 }

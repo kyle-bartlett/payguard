@@ -12,7 +12,7 @@ export class AnalysisRequestError extends Error {
   }
 }
 
-export function getExtension(filename: string): string {
+function getExtension(filename: string): string {
   return filename.split('.').pop()?.toLowerCase() ?? '';
 }
 
