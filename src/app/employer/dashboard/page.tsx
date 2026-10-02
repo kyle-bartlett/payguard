@@ -15,7 +15,7 @@ import {
   Users,
   CheckCircle2,
   FileSpreadsheet,
-    Clock,
+  Clock,
   TrendingUp,
   Plug,
   LogOut,
@@ -70,7 +70,7 @@ export default function DashboardPage() {
       const result = await readApiResponse<{ summary: string; saved?: boolean }>(
         await fetch('/api/analyze', { method: 'POST', body: formData }),
       );
-      setUploadMessage({ ok: true, text: result.summary });
+      setUploadMessage({ ok: true, text: result.summary + (result.saved === false ? ' (This result could not be saved to your dashboard.)' : '') });
       setFile(null);
       await loadSummary();
     } catch (err) {

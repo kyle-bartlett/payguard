@@ -27,7 +27,7 @@ export async function savePayStubAnalysis(
     data: {
       userId,
       state: analysis.state,
-      employerName: extracted.employerName,
+      employerName: extracted.employerName?.slice(0, 200),
       payPeriodStart: extracted.payPeriodStart,
       payPeriodEnd: extracted.payPeriodEnd,
       hoursWorked: extracted.hoursWorked,
@@ -59,9 +59,11 @@ export async function getEmployerSummary(prisma: PrismaClient, userId: string): 
   const employer = await prisma.employer.findUnique({ where: { userId }, select: { companyName: true } });
   if (!employer) return null;
 
-  const [statementsChecked, issueGroups, recent] = await Promise.all([
+  const [statementsChecked, issueGroups, cleanChecks, issuesFound, recent] = await Promise.all([
     prisma.payStub.count({ where: { userId } }),
     prisma.payStub.count({ where: { userId, violations: { some: { severity: { not: 'warning' } } } } }),
+    prisma.payStub.count({ where: { userId, violations: { none: {} } } }),
+    prisma.violation.count({ where: { severity: { not: 'warning' }, payStub: { userId } } }),
     prisma.payStub.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -75,11 +77,6 @@ export async function getEmployerSummary(prisma: PrismaClient, userId: string): 
       },
     }),
   ]);
-
-  const cleanChecks = await prisma.payStub.count({ where: { userId, violations: { none: {} } } });
-  const issuesFound = await prisma.violation.count({
-    where: { severity: { not: 'warning' }, payStub: { userId } },
-  });
 
   return {
     companyName: employer.companyName,
