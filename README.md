@@ -21,6 +21,8 @@ npm run lint
 npm run build
 ```
 
+Set `DATABASE_URL` to a disposable Postgres to include the database integration test in `npm test`. For the full wired check, run `npx prisma migrate deploy`, build, start the server with `OPENAI_BASE_URL` pointing at a local stub, then `npm run e2e` (see `scripts/e2e.mjs`). Signed-in employers have each analysis saved and rolled up on the dashboard.
+
 ## Production
 
 PayGuard deploys from Forgejo `main` through Coolify at [payguard.bartlettlabs.io](https://payguard.bartlettlabs.io). Configure these environment variables in Coolify:

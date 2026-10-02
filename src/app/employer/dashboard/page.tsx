@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { getStateList } from '@/lib/analysis';
+import { readApiResponse } from '@/lib/api-response';
+import type { EmployerSummary } from '@/lib/pay-stub-store';
 import {
   Shield,
   Upload,
@@ -12,18 +15,70 @@ import {
   Users,
   CheckCircle2,
   FileSpreadsheet,
-  ArrowUpRight,
-  Clock,
+    Clock,
   TrendingUp,
   Plug,
   LogOut,
   Loader2,
 } from 'lucide-react';
 
+const STATES = getStateList();
+
+function timeAgo(iso: string): string {
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  return hours < 24 ? `${hours} hr ago` : `${Math.round(hours / 24)} d ago`;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'upload' | 'integrations'>('overview');
   const [signingOut, setSigningOut] = useState(false);
+  const [summary, setSummary] = useState<EmployerSummary | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [state, setState] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const loadSummary = useCallback(async () => {
+    try {
+      setSummary(await readApiResponse<EmployerSummary>(await fetch('/api/employer/summary', { cache: 'no-store' })));
+      setLoadError(null);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'We could not load your dashboard.');
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadSummary();
+  }, [loadSummary]);
+
+  const handleAnalyze = async () => {
+    if (!file || !state) {
+      setUploadMessage({ ok: false, text: 'Choose a pay statement and a state.' });
+      return;
+    }
+    setAnalyzing(true);
+    setUploadMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('state', state);
+      const result = await readApiResponse<{ summary: string; saved?: boolean }>(
+        await fetch('/api/analyze', { method: 'POST', body: formData }),
+      );
+      setUploadMessage({ ok: true, text: result.summary });
+      setFile(null);
+      await loadSummary();
+    } catch (err) {
+      setUploadMessage({ ok: false, text: err instanceof Error ? err.message : 'Analysis failed.' });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const handleLogout = async () => {
     setSigningOut(true);
@@ -46,8 +101,8 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-full">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                  Demo Mode
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+                  {summary ? summary.companyName : 'Live'}
                 </span>
                 <button
                   type="button"
@@ -65,7 +120,7 @@ export default function DashboardPage() {
             <div className="flex gap-1 mt-6 -mb-px">
               {[
                 { id: 'overview', label: 'Overview', icon: BarChart3 },
-                { id: 'upload', label: 'Upload Payroll', icon: Upload },
+                { id: 'upload', label: 'Check a Pay Statement', icon: Upload },
                 { id: 'integrations', label: 'Integrations', icon: Plug },
               ].map(({ id, label, icon: Icon }) => (
                 <button
@@ -98,10 +153,12 @@ export default function DashboardPage() {
                       <Shield className="w-5 h-5 text-emerald-600" />
                     </div>
                   </div>
-                  <div className="text-3xl font-bold text-slate-900">94%</div>
+                  <div className="text-3xl font-bold text-slate-900">
+                    {summary?.complianceScore == null ? '—' : `${summary.complianceScore}%`}
+                  </div>
                   <div className="flex items-center gap-1 mt-1 text-sm text-emerald-600">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    +2% from last month
+                    Statements with no flagged issue
                   </div>
                 </div>
 
@@ -112,19 +169,21 @@ export default function DashboardPage() {
                       <AlertTriangle className="w-5 h-5 text-amber-600" />
                     </div>
                   </div>
-                  <div className="text-3xl font-bold text-slate-900">3</div>
-                  <p className="text-sm text-slate-400 mt-1">Across 2 employees</p>
+                  <div className="text-3xl font-bold text-slate-900">{summary?.issuesFound ?? '—'}</div>
+                  <p className="text-sm text-slate-400 mt-1">Potential violations</p>
                 </div>
 
                 <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-medium text-slate-500">Employees Checked</span>
+                    <span className="text-sm font-medium text-slate-500">Statements Checked</span>
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                       <Users className="w-5 h-5 text-blue-600" />
                     </div>
                   </div>
-                  <div className="text-3xl font-bold text-slate-900">47</div>
-                  <p className="text-sm text-slate-400 mt-1">Last audit: 2 hours ago</p>
+                  <div className="text-3xl font-bold text-slate-900">{summary?.statementsChecked ?? '—'}</div>
+                  <p className="text-sm text-slate-400 mt-1">
+                    {summary?.recent[0] ? `Last check: ${timeAgo(summary.recent[0].createdAt)}` : 'None yet'}
+                  </p>
                 </div>
 
                 <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
@@ -134,8 +193,8 @@ export default function DashboardPage() {
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     </div>
                   </div>
-                  <div className="text-3xl font-bold text-slate-900">44</div>
-                  <p className="text-sm text-slate-400 mt-1">93.6% pass rate</p>
+                  <div className="text-3xl font-bold text-slate-900">{summary?.cleanChecks ?? '—'}</div>
+                  <p className="text-sm text-slate-400 mt-1">No issues or notes</p>
                 </div>
               </div>
 
@@ -143,20 +202,16 @@ export default function DashboardPage() {
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                   <h2 className="text-lg font-bold text-slate-900">Recent Activity</h2>
-                  <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                    View All
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </button>
                 </div>
                 <div className="divide-y divide-slate-100">
-                  {[
-                    { status: 'clean', name: 'Sarah Johnson', time: '2 hours ago', detail: 'Weekly payroll — no issues' },
-                    { status: 'issue', name: 'Mike Thompson', time: '2 hours ago', detail: 'Overtime rate below 1.5x' },
-                    { status: 'clean', name: 'Lisa Chen', time: '2 hours ago', detail: 'Weekly payroll — no issues' },
-                    { status: 'issue', name: 'James Wilson', time: '3 hours ago', detail: 'Missing meal break documentation' },
-                    { status: 'clean', name: 'Emily Davis', time: '3 hours ago', detail: 'Weekly payroll — no issues' },
-                  ].map((item, i) => (
-                    <div key={i} className="px-6 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                  {loadError && <p className="px-6 py-4 text-sm text-red-600">{loadError}</p>}
+                  {summary && summary.recent.length === 0 && (
+                    <p className="px-6 py-6 text-sm text-slate-500">
+                      No statements checked yet. Use the Check a Pay Statement tab to run your first analysis.
+                    </p>
+                  )}
+                  {summary?.recent.map((item) => (
+                    <div key={item.id} className="px-6 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors">
                       <div className="flex-shrink-0">
                         {item.status === 'clean'
                           ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
@@ -164,12 +219,12 @@ export default function DashboardPage() {
                         }
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900">{item.name}</p>
+                        <p className="text-sm font-medium text-slate-900">{item.employerName ?? 'Pay statement'} ({item.state})</p>
                         <p className="text-xs text-slate-500">{item.detail}</p>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-400">
                         <Clock className="w-3.5 h-3.5" />
-                        {item.time}
+                        {timeAgo(item.createdAt)}
                       </div>
                     </div>
                   ))}
@@ -185,39 +240,48 @@ export default function DashboardPage() {
                   <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <FileSpreadsheet className="w-8 h-8 text-blue-600" />
                   </div>
-                  <h2 className="text-xl font-bold text-slate-900">Upload Payroll Data</h2>
+                  <h2 className="text-xl font-bold text-slate-900">Check a Pay Statement</h2>
                   <p className="text-sm text-slate-500 mt-1">
-                    Upload a CSV or Excel file with your payroll data for bulk analysis.
+                    Upload one PDF, PNG, JPG, or WebP statement (up to 10 MB). Results are saved to your dashboard.
                   </p>
                 </div>
 
-                <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer">
+                <label className="block border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer">
                   <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-                  <p className="text-sm text-slate-600 font-medium">
-                    Drop CSV or Excel file here
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Supports .csv, .xlsx — up to 50MB
-                  </p>
-                </div>
+                  <span className="text-sm text-slate-600 font-medium">{file ? file.name : 'Choose a pay statement'}</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp"
+                    className="sr-only"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
 
-                <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-                  <p className="text-xs font-semibold text-slate-600 mb-2">Required Columns:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['Employee Name', 'Hours Worked', 'Hourly Rate', 'Gross Pay', 'State', 'OT Hours', 'OT Rate'].map((col) => (
-                      <span key={col} className="text-xs px-2 py-1 bg-white border border-slate-200 rounded-md text-slate-600">
-                        {col}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <label className="block mt-6 text-sm font-medium text-slate-700" htmlFor="state">State</label>
+                <select
+                  id="state"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                >
+                  <option value="">Select a state</option>
+                  {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
+                </select>
 
-                <button className="w-full mt-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors opacity-50 cursor-not-allowed">
-                  Upload & Analyze
+                <button
+                  type="button"
+                  onClick={handleAnalyze}
+                  disabled={analyzing}
+                  className="w-full mt-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {analyzing && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Analyze & Save
                 </button>
-                <p className="text-xs text-slate-400 text-center mt-2">
-                  Bulk analysis coming soon
-                </p>
+                {uploadMessage && (
+                  <p className={`text-sm mt-3 ${uploadMessage.ok ? 'text-emerald-700' : 'text-red-600'}`} role="status">
+                    {uploadMessage.text}
+                  </p>
+                )}
               </div>
             </div>
           )}

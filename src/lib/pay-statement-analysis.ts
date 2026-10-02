@@ -189,7 +189,7 @@ export async function extractPayStatement(
 }> {
   validatePayStatement(file);
   const fileContent = await toOpenAIContent(file);
-  const response = await fetchImpl('https://api.openai.com/v1/responses', {
+  const response = await fetchImpl(`${(process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '')}/responses`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({

@@ -48,3 +48,6 @@ prisma/*.db-journal
 # uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+graft/
