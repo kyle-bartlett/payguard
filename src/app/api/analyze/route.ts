@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzePayStub } from '@/lib/analysis';
+import { analyzePayStub, getStateList } from '@/lib/analysis';
 import { getClientIp, getCurrentSession, isAuthRateLimited } from '@/lib/auth';
 import { getPrisma } from '@/lib/prisma';
 import { savePayStubAnalysis } from '@/lib/pay-stub-store';
@@ -28,15 +28,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const state = formData.get('state') as string | null;
+    const formData = await request.formData().catch(() => null);
+    if (!formData) {
+      return NextResponse.json({ error: 'Invalid upload request.' }, { status: 400 });
+    }
+    const file = formData.get('file');
+    const state = formData.get('state');
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
-    if (!state) {
+    if (typeof state !== 'string' || !state) {
       return NextResponse.json({ error: 'State is required' }, { status: 400 });
+    }
+    if (!getStateList().some((known) => known.code === state)) {
+      return NextResponse.json({ error: 'Unsupported state.' }, { status: 400 });
     }
 
     const { extractedData, confidence, extractionWarnings } = await extractPayStatement(file, apiKey);

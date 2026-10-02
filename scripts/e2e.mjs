@@ -61,6 +61,10 @@ try {
   assert.ok(summary.issuesFound >= 1);
   assert.equal(summary.recent[0].employerName, 'Stub Diner');
 
+  const badState = upload();
+  badState.body.set('state', 'ZZ');
+  assert.equal((await call('/api/analyze', badState)).status, 400, 'unknown state rejected');
+
   // Anonymous workers still get an analysis, but nothing is saved.
   cookie = '';
   const anon = await (await call('/api/analyze', upload())).json();

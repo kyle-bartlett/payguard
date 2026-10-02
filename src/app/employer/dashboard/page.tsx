@@ -287,36 +287,15 @@ export default function DashboardPage() {
           )}
 
           {activeTab === 'integrations' && (
-            <div className="max-w-2xl mx-auto">
-              <div className="space-y-4">
-                {[
-                  { name: 'Gusto', status: 'available', description: 'Sync employee data and payroll automatically' },
-                  { name: 'ADP', status: 'available', description: 'Connect your ADP Workforce Now account' },
-                  { name: 'QuickBooks', status: 'coming', description: 'QuickBooks Payroll integration' },
-                  { name: 'Paycom', status: 'coming', description: 'Paycom HR and payroll sync' },
-                  { name: 'Paychex', status: 'coming', description: 'Paychex Flex integration' },
-                ].map((integration) => (
-                  <div key={integration.name} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Plug className="w-6 h-6 text-slate-500" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-900">{integration.name}</h3>
-                      <p className="text-sm text-slate-500">{integration.description}</p>
-                    </div>
-                    <button
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        integration.status === 'available'
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      }`}
-                      disabled={integration.status === 'coming'}
-                    >
-                      {integration.status === 'available' ? 'Connect' : 'Coming Soon'}
-                    </button>
-                  </div>
-                ))}
+            <div className="max-w-2xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
+              <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Plug className="w-6 h-6 text-slate-500" />
               </div>
+              <h2 className="text-lg font-bold text-slate-900">Payroll integrations are coming soon</h2>
+              <p className="text-sm text-slate-500 mt-2">
+                Direct payroll-system connections are not available yet. For now, check statements from the
+                Check a Pay Statement tab.
+              </p>
             </div>
           )}
         </div>

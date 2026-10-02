@@ -25,6 +25,8 @@ Set `DATABASE_URL` to a disposable Postgres to include the database integration 
 
 ## Production
 
+`npm run build` also copies static assets into the standalone bundle, and `npm start` runs migrations then `node .next/standalone/server.js`.
+
 PayGuard deploys from Forgejo `main` through Coolify at [payguard.bartlettlabs.io](https://payguard.bartlettlabs.io). Configure these environment variables in Coolify:
 
 - `DATABASE_URL`

@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build && node scripts/prepare-standalone.mjs",
     "postinstall": "prisma generate",
-    "start": "prisma migrate deploy && next start",
+    "start": "prisma migrate deploy && HOSTNAME=0.0.0.0 node .next/standalone/server.js",
     "lint": "eslint",
     "test": "tsx --test src/lib/*.test.ts",
     "e2e": "node scripts/e2e.mjs"
