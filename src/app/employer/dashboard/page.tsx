@@ -53,6 +53,9 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    // loadSummary only sets state after its fetch resolves; react-hooks 7.1
+    // (eslint-config-next 16.4) flags the call anyway.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSummary();
   }, [loadSummary]);
 
