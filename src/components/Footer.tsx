@@ -49,6 +49,11 @@ export default function Footer() {
               <li><span className="text-slate-600">Terms of Service</span></li>
               <li><span className="text-slate-600">Disclaimer</span></li>
             </ul>
+            <p className="mt-3 text-xs leading-relaxed">
+              We use cookieless, self-hosted analytics to measure visits to our public homepage
+              and pricing page. It records page paths, referring domains, device information,
+              and approximate location. Payroll and account pages are outside this measurement.
+            </p>
           </div>
         </div>
 

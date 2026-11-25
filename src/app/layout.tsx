@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import PublicAnalytics from "@/components/PublicAnalytics";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className="antialiased bg-slate-50 text-slate-900">
         {children}
+        <PublicAnalytics />
       </body>
     </html>
   );
