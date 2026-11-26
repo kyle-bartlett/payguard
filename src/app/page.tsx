@@ -254,14 +254,14 @@ export default function Home() {
                   href="/employer/signup"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg"
                 >
-                  Start Free Trial
+                  Join the Waitlist
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <Link
                   href="/employer/pricing"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 backdrop-blur text-white font-medium rounded-xl border border-white/20 hover:bg-white/20 transition-colors"
                 >
-                  View Pricing
+                  Pricing Coming Soon
                 </Link>
               </div>
             </div>

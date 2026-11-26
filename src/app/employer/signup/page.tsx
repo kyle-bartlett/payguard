@@ -48,7 +48,7 @@ export default function SignupPage() {
               <Shield className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
-            <p className="text-slate-500 mt-1">Start your 14-day free trial</p>
+            <p className="text-slate-500 mt-1">Join the employer waitlist</p>
           </div>
 
           {/* Form */}
